@@ -79,6 +79,10 @@ def extract_invoice_data(file_path: str, mime_type: str) -> AIProcessedTransacti
     
     messages = [
         {
+            "role": "system",
+            "content": "You are an expert financial AI assistant. Respond strictly in JSON format."
+        },
+        {
             "role": "user",
             "content": [
                 {"type": "text", "text": prompt}
