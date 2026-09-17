@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7 # 7 days
     GROQ_API_KEY: str = "mock-api-key"
-    GROQ_MODEL: str = "qwen/qwen-3.8-27b"
+    GROQ_MODEL: str = "qwen/qwen3.8-27b"
     MAX_UPLOAD_SIZE_MB: int = 10
     STORAGE_PATH: str = "./storage/documents"
     FRONTEND_URL: str = "http://localhost:5173"
