@@ -93,14 +93,14 @@ def extract_invoice_data(file_path: str, mime_type: str) -> AIProcessedTransacti
     if mime_type == "application/pdf":
         base64_images = convert_pdf_to_base64_images(file_path)
         for b64_img in base64_images:
-            messages[0]["content"].append(
+            messages[1]["content"].append(
                 {"type": "image_url", "image_url": {"url": b64_img}}
             )
     else:
         with open(file_path, "rb") as f:
             img_bytes = f.read()
         b64_str = base64.b64encode(img_bytes).decode("utf-8")
-        messages[0]["content"].append(
+        messages[1]["content"].append(
             {"type": "image_url", "image_url": {"url": f"data:{mime_type};base64,{b64_str}"}}
         )
 
