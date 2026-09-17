@@ -1,0 +1,53 @@
+.curato-input-group {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 1rem;
+}
+
+.curato-input-full {
+  width: 100%;
+}
+
+.curato-input-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-main);
+  margin-bottom: 0.375rem;
+}
+
+.curato-input {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background-color: var(--bg-card);
+  color: var(--text-main);
+  transition: border-color 0.2s, box-shadow 0.2s;
+  outline: none;
+}
+
+.curato-input:focus {
+  border-color: var(--curato-navy);
+  box-shadow: 0 0 0 2px var(--curato-navy-light);
+}
+
+.curato-input:disabled {
+  background-color: #F9FAFB;
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+.curato-input-error {
+  border-color: #EF4444;
+}
+
+.curato-input-error:focus {
+  border-color: #EF4444;
+  box-shadow: 0 0 0 2px #FEE2E2;
+}
+
+.curato-input-error-msg {
+  font-size: 0.75rem;
+  color: #EF4444;
+  margin-top: 0.25rem;
+}

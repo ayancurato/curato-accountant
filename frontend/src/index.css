@@ -1,0 +1,82 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+  /* Curato Theme Variables */
+  --curato-navy: #001B5A;
+  --curato-navy-hover: #001140;
+  --curato-navy-light: #e6ebf5;
+  
+  --curato-teal: #00BFA5;
+  --curato-teal-hover: #00a08a;
+  --curato-teal-light: #e0f9f5;
+  
+  --bg-app: #F7F9FA;
+  --bg-card: #FFFFFF;
+  
+  --text-main: #111827;
+  --text-sub: #4B5563;
+  --text-muted: #9CA3AF;
+  
+  --border-color: #E5E7EB;
+  
+  /* Status Colors */
+  --status-ready-bg: #D1FAE5;
+  --status-ready-text: #065F46;
+  
+  --status-review-bg: #FEF3C7;
+  --status-review-text: #92400E;
+  
+  --status-processing-bg: #DBEAFE;
+  --status-processing-text: #1E40AF;
+  
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  
+  --radius-sm: 0.25rem;
+  --radius-md: 0.375rem;
+  --radius-lg: 0.5rem;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background-color: var(--bg-app);
+  color: var(--text-main);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+button {
+  font-family: inherit;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  color: var(--curato-navy);
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+/* Layout Utilities */
+.container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 2rem;
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: 0 1rem;
+  }
+}

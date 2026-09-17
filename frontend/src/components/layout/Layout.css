@@ -1,0 +1,97 @@
+.curato-layout {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.curato-header {
+  background-color: var(--bg-card);
+  border-bottom: 1px solid var(--border-color);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+.curato-header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 4rem;
+}
+
+.curato-logo-link {
+  display: flex;
+  align-items: center;
+}
+
+.curato-logo {
+  height: 64px;
+  width: auto;
+  object-fit: contain;
+  transform: scale(1.5);
+}
+
+.curato-nav {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+}
+
+.curato-nav-link {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-sub);
+  transition: color 0.2s;
+  padding: 0.5rem 0;
+  position: relative;
+}
+
+.curato-nav-link:hover {
+  color: var(--curato-navy);
+}
+
+.curato-nav-link.active {
+  color: #3b82f6; /* Bright blue for active state */
+}
+
+.curato-nav-link.active::after {
+  content: '';
+  position: absolute;
+  bottom: -0.85rem;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background-color: #3b82f6; /* Bright blue for active underline */
+  border-radius: 2px;
+}
+
+.curato-main {
+  flex: 1;
+  padding: 2.5rem 2rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .curato-header-inner {
+    flex-direction: column;
+    height: auto;
+    padding: 1rem;
+    gap: 1rem;
+  }
+  
+  .curato-nav {
+    width: 100%;
+    justify-content: space-between;
+    gap: 0.5rem;
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+  }
+  
+  .curato-nav-link.active::after {
+    bottom: -0.3rem;
+  }
+  
+  .curato-main {
+    padding: 1.5rem 1rem;
+  }
+}

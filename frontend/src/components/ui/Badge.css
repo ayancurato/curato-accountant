@@ -1,0 +1,40 @@
+.curato-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.625rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+
+.curato-badge-uploaded {
+  background-color: #F3F4F6;
+  color: #374151;
+}
+
+.curato-badge-processing {
+  background-color: var(--status-processing-bg);
+  color: var(--status-processing-text);
+}
+
+.curato-badge-ready,
+.curato-badge-approved,
+.curato-badge-paid,
+.curato-badge-received {
+  background-color: var(--status-ready-bg);
+  color: var(--status-ready-text);
+}
+
+.curato-badge-needs_review,
+.curato-badge-outstanding,
+.curato-badge-unpaid {
+  background-color: var(--status-review-bg);
+  color: var(--status-review-text);
+}
+
+.curato-badge-error {
+  background-color: #FEE2E2;
+  color: #991B1B;
+}

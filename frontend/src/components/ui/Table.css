@@ -1,0 +1,55 @@
+.curato-table-container {
+  width: 100%;
+  overflow-x: auto;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-card);
+}
+
+.curato-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.875rem;
+}
+
+.curato-table-head {
+  background-color: #F9FAFB;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.curato-table-th {
+  padding: 0.75rem 1rem;
+  font-weight: 600;
+  color: var(--text-sub);
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+}
+
+.curato-table-body {
+  background-color: var(--bg-card);
+}
+
+.curato-table-row {
+  border-bottom: 1px solid var(--border-color);
+  transition: background-color 0.2s;
+}
+
+.curato-table-row:last-child {
+  border-bottom: none;
+}
+
+.curato-table-row-clickable {
+  cursor: pointer;
+}
+
+.curato-table-row-clickable:hover {
+  background-color: #F9FAFB;
+}
+
+.curato-table-td {
+  padding: 1rem;
+  color: var(--text-main);
+  vertical-align: middle;
+}

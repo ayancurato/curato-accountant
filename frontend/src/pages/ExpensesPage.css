@@ -1,0 +1,347 @@
+.expenses-page-wrapper {
+  position: relative;
+  min-height: calc(100vh - 4rem);
+  background-color: #fcfdfd;
+  padding: 3rem 0 5rem;
+}
+
+.expenses-container {
+  max-width: 1300px;
+  margin: 0 auto;
+  padding: 0 2rem;
+}
+
+/* Hero Section */
+.expenses-hero {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 2rem;
+}
+
+.expenses-hero-text h1 {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 2.75rem;
+  color: var(--curato-navy);
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.expenses-hero-text p {
+  font-size: 1rem;
+  color: #64748b;
+}
+
+.btn-add-expense {
+  background-color: var(--curato-navy);
+  color: white;
+  border: none;
+  border-radius: 9999px;
+  padding: 0.75rem 2rem;
+  font-weight: 500;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.1s;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn-add-expense:hover {
+  background-color: #001140;
+  transform: translateY(-1px);
+}
+
+/* Filter Card */
+.filter-card {
+  background-color: #ffffff;
+  border-radius: 1.25rem;
+  padding: 2rem;
+  box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.05);
+  margin-bottom: 2.5rem;
+  border: 1px solid rgba(226, 232, 240, 0.6);
+}
+
+.filter-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 1.5rem;
+  align-items: end;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.filter-label {
+  font-size: 0.8rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.filter-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.filter-icon {
+  position: absolute;
+  left: 0.75rem;
+  color: #94a3b8;
+  pointer-events: none;
+}
+
+.filter-input, .filter-select {
+  width: 100%;
+  height: 2.75rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  background-color: #ffffff;
+  color: var(--curato-navy);
+  font-size: 0.9rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.filter-input:focus, .filter-select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.filter-input {
+  padding: 0 1rem;
+}
+
+.filter-input.with-icon {
+  padding-left: 2.5rem;
+}
+
+.filter-input::placeholder {
+  color: #cbd5e1;
+}
+
+.filter-select {
+  padding: 0 2.5rem 0 1rem;
+  appearance: none;
+  cursor: pointer;
+}
+
+.filter-select-chevron {
+  position: absolute;
+  right: 0.75rem;
+  color: #94a3b8;
+  pointer-events: none;
+}
+
+/* Date input specific fixes for calendar icon */
+.filter-date-input::-webkit-calendar-picker-indicator {
+  opacity: 0;
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+}
+
+/* Second Row overrides */
+.filter-group-dateto {
+  grid-column: 1;
+  grid-row: 2;
+  margin-top: 0.5rem;
+}
+
+/* Table Card */
+.table-card {
+  background-color: #ffffff;
+  border-radius: 1.25rem;
+  padding: 2rem;
+  box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(226, 232, 240, 0.6);
+}
+
+.expenses-table-container {
+  width: 100%;
+  overflow-x: auto;
+  padding-bottom: 1rem;
+}
+
+/* Custom Scrollbar */
+.expenses-table-container::-webkit-scrollbar {
+  height: 10px;
+}
+.expenses-table-container::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 5px;
+  margin: 0 1rem;
+}
+.expenses-table-container::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 5px;
+}
+.expenses-table-container::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.expenses-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  min-width: 1100px;
+}
+
+.expenses-table th {
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: #64748b;
+  padding: 1rem;
+  text-align: left;
+  border-bottom: 1px solid #f1f5f9;
+  white-space: nowrap;
+}
+
+.expenses-table td {
+  padding: 1.25rem 1rem;
+  font-size: 0.875rem;
+  color: var(--curato-navy);
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: middle;
+}
+
+.expenses-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.expenses-table tbody tr {
+  transition: background-color 0.15s ease;
+}
+
+.expenses-table tbody tr:hover {
+  background-color: #f8fafc;
+}
+
+.table-header-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  cursor: pointer;
+}
+
+.col-net, .col-gst {
+  color: #64748b;
+}
+
+.col-total {
+  font-weight: 600;
+}
+
+/* Status Pills */
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.status-pill.success {
+  background-color: #d1fae5;
+  color: #059669;
+}
+
+.status-pill.warning {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.status-pill.info {
+  background-color: #e0f2fe;
+  color: #0369a1;
+}
+
+.status-pill.neutral {
+  background-color: #f1f5f9;
+  color: #475569;
+}
+
+/* Action Button */
+.btn-action {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: #f1f5f9;
+  color: #64748b;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-action:hover {
+  background-color: #e2e8f0;
+  color: var(--curato-navy);
+}
+
+/* States */
+.state-container {
+  padding: 4rem 2rem;
+  text-align: center;
+  color: #64748b;
+  background-color: #f8fafc;
+  border-radius: 1rem;
+}
+
+.error-container {
+  padding: 1.5rem;
+  background-color: #fef2f2;
+  color: #991b1b;
+  border-radius: 1rem;
+  margin-bottom: 2rem;
+  border: 1px solid #fecaca;
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+  .filter-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .filter-group-dateto {
+    grid-column: auto;
+    grid-row: auto;
+    margin-top: 0;
+  }
+}
+
+@media (max-width: 768px) {
+  .expenses-hero {
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+  
+  .filter-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .filter-card, .table-card {
+    padding: 1.5rem;
+  }
+  
+  .expenses-page-wrapper {
+    padding: 2rem 0;
+  }
+}
