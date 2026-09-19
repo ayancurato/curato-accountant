@@ -1,20 +1,6 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import or_, and_
 from decimal import Decimal
-import urllib.request
-import json
-
-def get_usd_to_inr_rate() -> Decimal:
-    try:
-        url = 'https://open.er-api.com/v6/latest/USD'
-        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-        with urllib.request.urlopen(req, timeout=5) as response:
-            data = json.loads(response.read().decode())
-            return Decimal(str(data['rates']['INR']))
-    except Exception as e:
-        print(f"Failed to fetch exchange rate: {e}")
-        return Decimal('95.91') # Fallback
-
 
 from app.models import (
     Document, Category, Transaction, User, AuditLog
@@ -170,14 +156,7 @@ def process_ai_result(db: Session, document: Document, ai_data: AIProcessedTrans
 
     if ai_data.currency == "USD":
         usd_amount = total_amount
-        exchange_rate = get_usd_to_inr_rate()
-        
-        net_amount = net_amount * exchange_rate
-        gst_amount = gst_amount * exchange_rate
-        total_amount = total_amount * exchange_rate
-        cgst = cgst * exchange_rate
-        sgst = sgst * exchange_rate
-        igst = igst * exchange_rate
+        # The frontend expects to capture the exchange rate manually
         
         ai_data.currency = "INR"
 

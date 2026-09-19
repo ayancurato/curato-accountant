@@ -120,14 +120,7 @@ const ReviewPage: React.FC = () => {
     setTx((prev: any) => {
       const updated = { ...prev, [field]: value };
       
-      if (field === 'usd_amount' || field === 'exchange_rate') {
-        const parsedUSD = parseFloat(updated.usd_amount || '0');
-        const parsedRate = parseFloat(updated.exchange_rate || '0');
-        if (!isNaN(parsedUSD) && !isNaN(parsedRate) && parsedRate > 0) {
-          updated.net_amount = (parsedUSD * parsedRate).toFixed(2);
-          updated.total_amount = (parsedUSD * parsedRate).toFixed(2);
-        }
-      }
+
       return updated;
     });
     setSaveSuccess(false);
@@ -293,20 +286,15 @@ const ReviewPage: React.FC = () => {
               />
               {tx.usd_amount !== null && tx.usd_amount !== undefined && (
                 <>
+                  <div style={{ gridColumn: '1 / -1', color: 'red', fontWeight: 'bold', marginBottom: '10px' }}>
+                    This invoice is in USD. Please manually enter the final INR amounts (Net Amount / Total Amount) below.
+                  </div>
                   <Input 
                     label="USD Amount" 
                     type="number"
                     step="0.01"
                     value={tx.usd_amount || ''} 
                     onChange={(e) => handleChange('usd_amount', e.target.value)} 
-                    disabled={isApproved}
-                  />
-                  <Input 
-                    label="Exchange Rate" 
-                    type="number"
-                    step="0.0001"
-                    value={tx.exchange_rate || ''} 
-                    onChange={(e) => handleChange('exchange_rate', e.target.value)} 
                     disabled={isApproved}
                   />
                 </>
@@ -453,16 +441,23 @@ const ReviewPage: React.FC = () => {
                 ]}
                 disabled={isApproved}
               />
-              <Select
-                label="Payment Status"
-                value={tx.payment_status || ''}
-                onChange={(e) => handleChange('payment_status', e.target.value)}
-                options={tx.type === 'EXPENSE' 
-                  ? [{ value: 'PAID', label: 'Paid' }, { value: 'UNPAID', label: 'Unpaid' }]
-                  : [{ value: 'RECEIVED', label: 'Received' }, { value: 'OUTSTANDING', label: 'Outstanding' }]
-                }
-                disabled={isApproved}
-              />
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <Select
+                  label="Payment Status"
+                  value={tx.payment_status || ''}
+                  onChange={(e) => handleChange('payment_status', e.target.value)}
+                  options={tx.type === 'EXPENSE' 
+                    ? [{ value: 'PAID', label: 'Paid' }, { value: 'UNPAID', label: 'Unpaid' }]
+                    : [{ value: 'RECEIVED', label: 'Received' }, { value: 'OUTSTANDING', label: 'Outstanding' }]
+                  }
+                  disabled={isApproved}
+                />
+                {tx.payment_status === 'UNPAID' && (
+                  <span style={{ color: 'red', fontSize: '0.875rem', fontWeight: 'bold', marginTop: '4px' }}>
+                    Please change the payment status to PAID to continue.
+                  </span>
+                )}
+              </div>
             </div>
           </div>
 
@@ -530,7 +525,7 @@ const ReviewPage: React.FC = () => {
                 <Button variant="outline" onClick={handleSave} disabled={isSaving || !hasChanges}>
                   {isSaving ? 'Saving...' : 'Save Changes'}
                 </Button>
-                <Button variant="primary" onClick={handleApprove} disabled={isApproving}>
+                <Button variant="primary" onClick={handleApprove} disabled={isApproving || tx.payment_status === 'UNPAID'}>
                   {isApproving ? 'Approving...' : 'Approve Transaction'}
                 </Button>
               </>
