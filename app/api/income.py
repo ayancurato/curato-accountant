@@ -4,7 +4,7 @@ from uuid import UUID
 from typing import List
 
 from app.core.database import get_db
-from app.models import User, Transaction
+from app.models import User, Transaction, Document
 from app.api.deps import get_current_user
 from app.schemas.transaction import TransactionOut, TransactionCreate, TransactionUpdate
 
@@ -161,3 +161,30 @@ def reject_income(id: UUID, current_user: User = Depends(get_current_user), db: 
     income.status = "REJECTED"
     db.commit()
     return {"status": "REJECTED"}
+
+@router.delete("/{id}")
+def delete_income(id: UUID, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    income = db.query(Transaction).filter(
+        Transaction.id == id,
+        Transaction.company_id == current_user.company_id,
+        Transaction.type == "INCOME"
+    ).first()
+    
+    if not income:
+        raise HTTPException(status_code=404, detail="Income not found")
+        
+    doc_id = income.document_id
+    log_audit(db, current_user.company_id, current_user.id, "TRANSACTION", income.id, "TRANSACTION_DELETED")
+    
+    db.delete(income)
+    
+    if doc_id:
+        other_tx = db.query(Transaction).filter(Transaction.document_id == doc_id, Transaction.id != id).first()
+        if not other_tx:
+            doc = db.query(Document).filter(Document.id == doc_id).first()
+            if doc:
+                db.delete(doc)
+                
+    db.commit()
+    return {"message": "Income deleted successfully"}
+

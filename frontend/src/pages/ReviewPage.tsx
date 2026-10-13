@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { AlertCircle, CheckCircle, Check } from 'lucide-react';
+import { AlertCircle, CheckCircle, Check, Trash2 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
-import { getTransaction, getDocument, getDocumentFile, getCategories, updateTransaction, approveTransaction } from '../api/client';
+import { getTransaction, getDocument, getDocumentFile, getCategories, updateTransaction, approveTransaction, deleteTransaction } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import './ReviewPage.css';
 
@@ -172,6 +172,25 @@ const ReviewPage: React.FC = () => {
       setError(err.message || 'Failed to approve transaction');
     } finally {
       setIsApproving(false);
+    }
+  };
+
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    if (!token || !id || !tx) return;
+    const itemType = tx.type === 'EXPENSE' ? 'expense' : 'income';
+    const counterparty = tx.vendor_customer || 'this entry';
+    if (!window.confirm(`Are you sure you want to permanently delete this ${itemType} entry for ${counterparty}? This cannot be undone.`)) {
+      return;
+    }
+    try {
+      setIsDeleting(true);
+      await deleteTransaction(token, id, tx.type);
+      navigate(tx.type === 'EXPENSE' ? '/expenses' : '/income');
+    } catch (err: any) {
+      setError(err.message || 'Failed to delete transaction');
+      setIsDeleting(false);
     }
   };
 
@@ -517,6 +536,16 @@ const ReviewPage: React.FC = () => {
           </div>
 
           <div className="review-actions">
+            <Button 
+              variant="outline" 
+              style={{ color: '#ef4444', borderColor: '#fca5a5', marginRight: 'auto' }}
+              onClick={handleDelete}
+              disabled={isDeleting}
+            >
+              <Trash2 size={16} style={{ marginRight: '0.35rem' }} />
+              {isDeleting ? 'Deleting...' : 'Delete Entry'}
+            </Button>
+
             {hasChanges && <span className="unsaved-indicator">Unsaved changes</span>}
             {saveSuccess && <span style={{ color: '#059669', display: 'flex', alignItems: 'center', gap: '0.25rem' }}><Check size={16}/> Saved</span>}
             

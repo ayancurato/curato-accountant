@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getIncomes, getCategories } from '../api/client';
+import { getIncomes, getCategories, deleteTransaction } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../components/ui/Table';
 import { Badge } from '../components/ui/Badge';
@@ -8,6 +8,7 @@ import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
 import { Card } from '../components/ui/Card';
+import { Trash2 } from 'lucide-react';
 
 const IncomePage: React.FC = () => {
   const navigate = useNavigate();
@@ -17,6 +18,24 @@ const IncomePage: React.FC = () => {
   const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const handleDeleteIncome = async (tx: any, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!token) return;
+    if (!window.confirm(`Are you sure you want to delete this income entry for ${tx.vendor_customer || 'this customer'}?`)) {
+      return;
+    }
+    try {
+      setDeletingId(tx.id);
+      await deleteTransaction(token, tx.id, 'INCOME');
+      setIncomes(prev => prev.filter(t => t.id !== tx.id));
+    } catch (err: any) {
+      alert(err.message || 'Failed to delete income entry');
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   // Filters
   const [status, setStatus] = useState<string>('');
@@ -192,10 +211,31 @@ const IncomePage: React.FC = () => {
                     <Badge status={tx.status}>{tx.status.replace('_', ' ')}</Badge>
                   </TableCell>
                   <TableCell>
-                    <Button variant="outline" size="sm" onClick={(e) => {
-                      e.stopPropagation();
-                      navigate(`/review/${tx.id}`);
-                    }}>Review</Button>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                      <Button variant="outline" size="sm" onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/review/${tx.id}`);
+                      }}>Review</Button>
+                      <button
+                        title="Delete entry"
+                        onClick={(e) => handleDeleteIncome(tx, e)}
+                        disabled={deletingId === tx.id}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: '#ef4444',
+                          cursor: 'pointer',
+                          padding: '0.35rem',
+                          borderRadius: '0.25rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          opacity: deletingId === tx.id ? 0.5 : 1
+                        }}
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}

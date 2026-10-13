@@ -156,3 +156,43 @@ def test_duplicate_detection(client, auth_headers, db_session):
     
     # F. Same hash -> DUPLICATE
     assert check_duplicate(db_session, company.id, "DupVendor", "INV-999", Decimal("500"), date(2030, 1, 1), "mock-hash-123") == True
+
+def test_delete_expense_and_income(client, auth_headers):
+    # 1. Create expense
+    exp_resp = client.post("/api/v1/expenses", json={
+        "vendor_customer": "Duplicate Vendor",
+        "invoice_number": "DUP-EXP-999",
+        "net_amount": 500,
+        "total_amount": 590,
+        "type": "EXPENSE"
+    }, headers=auth_headers)
+    assert exp_resp.status_code == 200
+    exp_id = exp_resp.json()["id"]
+
+    # Delete expense
+    del_exp_resp = client.delete(f"/api/v1/expenses/{exp_id}", headers=auth_headers)
+    assert del_exp_resp.status_code == 200
+    assert del_exp_resp.json()["message"] == "Expense deleted successfully"
+
+    # Verify 404
+    assert client.get(f"/api/v1/expenses/{exp_id}", headers=auth_headers).status_code == 404
+
+    # 2. Create income
+    inc_resp = client.post("/api/v1/income", json={
+        "vendor_customer": "Duplicate Client",
+        "invoice_number": "DUP-INC-999",
+        "net_amount": 1000,
+        "total_amount": 1180,
+        "type": "INCOME"
+    }, headers=auth_headers)
+    assert inc_resp.status_code == 200
+    inc_id = inc_resp.json()["id"]
+
+    # Delete income
+    del_inc_resp = client.delete(f"/api/v1/income/{inc_id}", headers=auth_headers)
+    assert del_inc_resp.status_code == 200
+    assert del_inc_resp.json()["message"] == "Income deleted successfully"
+
+    # Verify 404
+    assert client.get(f"/api/v1/income/{inc_id}", headers=auth_headers).status_code == 404
+

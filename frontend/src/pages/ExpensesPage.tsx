@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getExpenses, getCategories, updateTransaction } from '../api/client';
+import { getExpenses, getCategories, updateTransaction, deleteTransaction } from '../api/client';
 import { useAuth } from '../context/AuthContext';
-import { Search, Calendar, ChevronDown, MoreHorizontal, Paperclip, Plus, ChevronsUpDown } from 'lucide-react';
+import { Search, Calendar, ChevronDown, MoreHorizontal, Paperclip, Plus, ChevronsUpDown, Trash2, CheckCircle2, AlertTriangle } from 'lucide-react';
 import './ExpensesPage.css';
 
 const ExpensesPage: React.FC = () => {
@@ -14,6 +14,11 @@ const ExpensesPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Delete modal state
+  const [deleteModalTx, setDeleteModalTx] = useState<any | null>(null);
+  const [isDeleting, setIsDeleting] = useState<boolean>(false);
+  const [successToast, setSuccessToast] = useState<string | null>(null);
+
   // Filters
   const [status, setStatus] = useState<string>('');
   const [paymentStatus, setPaymentStatus] = useState<string>('');
@@ -24,6 +29,22 @@ const ExpensesPage: React.FC = () => {
   const [editingCell, setEditingCell] = useState<{ id: string, field: 'net_amount' | 'total_amount' } | null>(null);
   const [editValue, setEditValue] = useState<string>('');
   const [categoryId, setCategoryId] = useState<string>('');
+
+  const handleDeleteExpense = async () => {
+    if (!token || !deleteModalTx) return;
+    try {
+      setIsDeleting(true);
+      await deleteTransaction(token, deleteModalTx.id, 'EXPENSE');
+      setExpenses(prev => prev.filter(t => t.id !== deleteModalTx.id));
+      setSuccessToast(`Deleted entry for ${deleteModalTx.vendor_customer || 'expense'}`);
+      setDeleteModalTx(null);
+      setTimeout(() => setSuccessToast(null), 4000);
+    } catch (err: any) {
+      alert(err.message || 'Failed to delete expense entry');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   const loadData = async () => {
     if (!token) return;
@@ -344,17 +365,84 @@ const ExpensesPage: React.FC = () => {
                         </span>
                       </td>
                       <td>
-                        <button className="btn-action" onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(`/review/${tx.id}`);
-                        }}>
-                          <MoreHorizontal size={16} />
-                        </button>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <button 
+                            className="btn-action" 
+                            title="Review details"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/review/${tx.id}`);
+                            }}
+                          >
+                            <MoreHorizontal size={16} />
+                          </button>
+                          <button 
+                            className="btn-action btn-action-delete" 
+                            title="Delete entry"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDeleteModalTx(tx);
+                            }}
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+            </div>
+          </div>
+        )}
+
+        {/* Success Toast */}
+        {successToast && (
+          <div className="toast-notification">
+            <CheckCircle2 size={16} /> {successToast}
+          </div>
+        )}
+
+        {/* Delete Confirmation Modal */}
+        {deleteModalTx && (
+          <div className="delete-modal-backdrop" onClick={() => !isDeleting && setDeleteModalTx(null)}>
+            <div className="delete-modal-dialog" onClick={(e) => e.stopPropagation()}>
+              <div className="delete-modal-header">
+                <div className="delete-modal-icon">
+                  <AlertTriangle size={22} />
+                </div>
+                <div>
+                  <h3>Delete Expense Entry</h3>
+                  <p className="delete-modal-sub">This action cannot be undone.</p>
+                </div>
+              </div>
+              <div className="delete-modal-body">
+                <p>Are you sure you want to permanently delete this duplicate or unwanted expense?</p>
+                <div className="delete-modal-details">
+                  <div><strong>Vendor:</strong> {deleteModalTx.vendor_customer || 'Unknown'}</div>
+                  <div><strong>Invoice #:</strong> {deleteModalTx.invoice_number || 'N/A'}</div>
+                  <div><strong>Date:</strong> {deleteModalTx.date || 'N/A'}</div>
+                  <div><strong>Total Amount:</strong> {parseFloat(deleteModalTx.total_amount || '0').toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</div>
+                </div>
+              </div>
+              <div className="delete-modal-footer">
+                <button 
+                  type="button" 
+                  className="btn-modal-cancel" 
+                  onClick={() => setDeleteModalTx(null)}
+                  disabled={isDeleting}
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="button" 
+                  className="btn-modal-delete" 
+                  onClick={handleDeleteExpense}
+                  disabled={isDeleting}
+                >
+                  {isDeleting ? 'Deleting...' : 'Delete Expense'}
+                </button>
+              </div>
             </div>
           </div>
         )}

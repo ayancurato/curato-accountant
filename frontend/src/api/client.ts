@@ -262,3 +262,13 @@ export async function downloadCAPack(token: string, params: Record<string, strin
   a.remove();
   window.URL.revokeObjectURL(downloadUrl);
 }
+
+export async function deleteTransaction(token: string, id: string, type: string = 'EXPENSE') {
+  const endpoint = type === 'EXPENSE' ? 'expenses' : 'income';
+  const res = await fetch(`${API_BASE}/${endpoint}/${id}`, {
+    method: 'DELETE',
+    headers: { 'Authorization': `Bearer ${token}` }
+  });
+
+  return handleResponse(res, 'Failed to delete transaction');
+}
