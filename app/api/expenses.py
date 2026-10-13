@@ -51,6 +51,8 @@ def create_expense(expense_in: TransactionCreate, current_user: User = Depends(g
         type="EXPENSE"
     )
     db.add(db_expense)
+    db.flush()
+    log_audit(db, current_user.company_id, current_user.id, "TRANSACTION", db_expense.id, "TRANSACTION_CREATED")
     db.commit()
     db.refresh(db_expense)
     return db_expense

@@ -82,6 +82,8 @@ def create_income(income_in: TransactionCreate, current_user: User = Depends(get
         type="INCOME"
     )
     db.add(db_income)
+    db.flush()
+    log_audit(db, current_user.company_id, current_user.id, "TRANSACTION", db_income.id, "TRANSACTION_CREATED")
     db.commit()
     db.refresh(db_income)
     return db_income

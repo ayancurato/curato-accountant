@@ -272,3 +272,30 @@ export async function deleteTransaction(token: string, id: string, type: string 
 
   return handleResponse(res, 'Failed to delete transaction');
 }
+
+export async function createExpense(token: string, data: any) {
+  const res = await fetch(`${API_BASE}/expenses`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ ...data, type: 'EXPENSE' })
+  });
+
+  return handleResponse(res, 'Failed to create expense');
+}
+
+export async function createIncome(token: string, data: any) {
+  const res = await fetch(`${API_BASE}/income`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ ...data, type: 'INCOME' })
+  });
+
+  return handleResponse(res, 'Failed to create income');
+}
+

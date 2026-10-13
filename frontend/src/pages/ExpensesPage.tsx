@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getExpenses, getCategories, updateTransaction, deleteTransaction } from '../api/client';
+import { getExpenses, getCategories, updateTransaction, deleteTransaction, createExpense } from '../api/client';
 import { useAuth } from '../context/AuthContext';
-import { Search, Calendar, ChevronDown, MoreHorizontal, Paperclip, Plus, ChevronsUpDown, Trash2, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { Search, Calendar, ChevronDown, MoreHorizontal, Paperclip, Plus, ChevronsUpDown, Trash2, CheckCircle2, AlertTriangle, X, FileText, AlertCircle } from 'lucide-react';
 import './ExpensesPage.css';
 
 const ExpensesPage: React.FC = () => {
@@ -13,6 +13,102 @@ const ExpensesPage: React.FC = () => {
   const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Manual Add Expense modal state
+  const [showAddModal, setShowAddModal] = useState<boolean>(false);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [addError, setAddError] = useState<string | null>(null);
+
+  const initialFormState = {
+    vendor_customer: '',
+    date: new Date().toISOString().split('T')[0],
+    category_id: '',
+    total_amount: '',
+    net_amount: '',
+    gst_amount: '0',
+    payment_account: 'Bank Account',
+    payment_status: 'PAID',
+    invoice_number: '',
+    expense_type: 'OPERATING_EXPENSE',
+    business_personal: 'BUSINESS',
+    notes: '',
+    status: 'APPROVED'
+  };
+
+  const [formData, setFormData] = useState(initialFormState);
+
+  const handleTotalChange = (val: string) => {
+    const total = parseFloat(val) || 0;
+    const gst = parseFloat(formData.gst_amount) || 0;
+    const net = Math.max(0, total - gst);
+    setFormData(prev => ({
+      ...prev,
+      total_amount: val,
+      net_amount: val ? (net > 0 ? net.toFixed(2) : total.toFixed(2)) : ''
+    }));
+  };
+
+  const handleGstChange = (val: string) => {
+    const gst = parseFloat(val) || 0;
+    const total = parseFloat(formData.total_amount) || 0;
+    const net = Math.max(0, total - gst);
+    setFormData(prev => ({
+      ...prev,
+      gst_amount: val,
+      net_amount: formData.total_amount ? (net > 0 ? net.toFixed(2) : total.toFixed(2)) : ''
+    }));
+  };
+
+  const handleAddExpenseSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!token) return;
+    setAddError(null);
+
+    if (!formData.vendor_customer.trim()) {
+      setAddError('Please enter a vendor or payee name.');
+      return;
+    }
+    const total = parseFloat(formData.total_amount);
+    if (isNaN(total) || total <= 0) {
+      setAddError('Please enter a valid total amount.');
+      return;
+    }
+    if (!formData.date) {
+      setAddError('Please select a date.');
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      const payload: any = {
+        type: 'EXPENSE',
+        vendor_customer: formData.vendor_customer.trim(),
+        date: formData.date,
+        category_id: formData.category_id || null,
+        total_amount: total,
+        net_amount: parseFloat(formData.net_amount) || total,
+        gst_amount: parseFloat(formData.gst_amount) || 0,
+        payment_account: formData.payment_account || null,
+        payment_status: formData.payment_status || 'PAID',
+        invoice_number: formData.invoice_number.trim() || 'N/A',
+        expense_type: formData.expense_type,
+        business_personal: formData.business_personal,
+        notes: formData.notes.trim() || null,
+        status: formData.status
+      };
+
+      const created = await createExpense(token, payload);
+      setExpenses(prev => [created, ...prev]);
+      setSuccessToast(`Manual expense for ${created.vendor_customer || 'vendor'} (₹${parseFloat(created.total_amount || 0).toLocaleString('en-IN')}) added successfully!`);
+      setTimeout(() => setSuccessToast(null), 4000);
+      setShowAddModal(false);
+      setFormData(initialFormState);
+    } catch (err: any) {
+      setAddError(err.message || 'Failed to create expense');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   // Delete modal state
   const [deleteModalTx, setDeleteModalTx] = useState<any | null>(null);
@@ -110,7 +206,7 @@ const ExpensesPage: React.FC = () => {
             <h1>Expenses</h1>
             <p>Track and manage all your business expenses in one place.</p>
           </div>
-          <button className="btn-add-expense" onClick={() => navigate('/upload')}>
+          <button className="btn-add-expense" onClick={() => setShowAddModal(true)}>
             <Plus size={18} /> Add Expense
           </button>
         </div>
@@ -476,6 +572,269 @@ const ExpensesPage: React.FC = () => {
                   {isDeleting ? 'Deleting...' : 'Delete Expense'}
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Manual Add Expense Modal */}
+        {showAddModal && (
+          <div className="add-expense-modal-backdrop" onClick={() => !isSubmitting && setShowAddModal(false)}>
+            <div className="add-expense-modal-dialog" onClick={(e) => e.stopPropagation()}>
+              <div className="add-expense-modal-header">
+                <div className="add-expense-modal-header-info">
+                  <div className="add-expense-modal-icon">
+                    <Plus size={22} />
+                  </div>
+                  <div>
+                    <h3>Add Expense Manually</h3>
+                    <p className="add-expense-modal-subtitle">Record an expense for which no invoice or receipt is available.</p>
+                  </div>
+                </div>
+                <button 
+                  type="button" 
+                  className="btn-modal-close" 
+                  onClick={() => setShowAddModal(false)}
+                  disabled={isSubmitting}
+                  title="Close"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <form onSubmit={handleAddExpenseSubmit}>
+                <div className="add-expense-modal-body">
+                  {/* Tip banner */}
+                  <div className="add-expense-tip-banner">
+                    <FileText size={18} className="add-expense-tip-icon" />
+                    <div>
+                      <span>Have an invoice document (PDF or image)? </span>
+                      <button 
+                        type="button" 
+                        className="add-expense-tip-link"
+                        onClick={() => {
+                          setShowAddModal(false);
+                          navigate('/upload');
+                        }}
+                      >
+                        Upload to auto-extract with AI instead →
+                      </button>
+                    </div>
+                  </div>
+
+                  {addError && (
+                    <div className="add-expense-error-banner">
+                      <AlertCircle size={16} />
+                      <span>{addError}</span>
+                    </div>
+                  )}
+
+                  <div className="add-expense-form-grid">
+                    {/* Vendor / Payee */}
+                    <div className="add-expense-form-group">
+                      <label className="add-expense-label">
+                        Vendor / Payee <span className="add-expense-required">*</span>
+                      </label>
+                      <input 
+                        type="text"
+                        required
+                        className="add-expense-input"
+                        placeholder="e.g. Chai Point, Uber, Swiggy, AWS"
+                        value={formData.vendor_customer}
+                        onChange={(e) => setFormData(prev => ({ ...prev, vendor_customer: e.target.value }))}
+                      />
+                    </div>
+
+                    {/* Date */}
+                    <div className="add-expense-form-group">
+                      <label className="add-expense-label">
+                        Date <span className="add-expense-required">*</span>
+                      </label>
+                      <input 
+                        type="date"
+                        required
+                        className="add-expense-input"
+                        value={formData.date}
+                        onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
+                      />
+                    </div>
+
+                    {/* Category */}
+                    <div className="add-expense-form-group">
+                      <label className="add-expense-label">Category</label>
+                      <select 
+                        className="add-expense-select"
+                        value={formData.category_id}
+                        onChange={(e) => setFormData(prev => ({ ...prev, category_id: e.target.value }))}
+                      >
+                        <option value="">Select Category...</option>
+                        {categories.map((c: any) => (
+                          <option key={c.id} value={c.id}>{c.name}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Reference / Invoice # */}
+                    <div className="add-expense-form-group">
+                      <label className="add-expense-label">Reference / Bill # (Optional)</label>
+                      <input 
+                        type="text"
+                        className="add-expense-input"
+                        placeholder="e.g. N/A or Cash Receipt #12"
+                        value={formData.invoice_number}
+                        onChange={(e) => setFormData(prev => ({ ...prev, invoice_number: e.target.value }))}
+                      />
+                    </div>
+
+                    {/* Total Amount */}
+                    <div className="add-expense-form-group">
+                      <label className="add-expense-label">
+                        Total Amount (₹) <span className="add-expense-required">*</span>
+                      </label>
+                      <input 
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        required
+                        className="add-expense-input add-expense-input-bold"
+                        placeholder="0.00"
+                        value={formData.total_amount}
+                        onChange={(e) => handleTotalChange(e.target.value)}
+                      />
+                    </div>
+
+                    {/* GST Amount */}
+                    <div className="add-expense-form-group">
+                      <label className="add-expense-label">GST / Tax Amount (₹)</label>
+                      <input 
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        className="add-expense-input"
+                        placeholder="0.00"
+                        value={formData.gst_amount}
+                        onChange={(e) => handleGstChange(e.target.value)}
+                      />
+                    </div>
+
+                    {/* Net Amount */}
+                    <div className="add-expense-form-group">
+                      <label className="add-expense-label">Net Amount (₹)</label>
+                      <input 
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        className="add-expense-input"
+                        placeholder="0.00"
+                        value={formData.net_amount}
+                        onChange={(e) => setFormData(prev => ({ ...prev, net_amount: e.target.value }))}
+                      />
+                    </div>
+
+                    {/* Payment Account */}
+                    <div className="add-expense-form-group">
+                      <label className="add-expense-label">Payment Account</label>
+                      <select 
+                        className="add-expense-select"
+                        value={formData.payment_account}
+                        onChange={(e) => setFormData(prev => ({ ...prev, payment_account: e.target.value }))}
+                      >
+                        <option value="Bank Account">Bank Account</option>
+                        <option value="HDFC Bank">HDFC Bank</option>
+                        <option value="ICICI Bank">ICICI Bank</option>
+                        <option value="Corporate Card">Corporate Card</option>
+                        <option value="Petty Cash">Petty Cash / Cash</option>
+                        <option value="UPI">UPI</option>
+                        <option value="Founder Account">Founder Personal Account</option>
+                      </select>
+                    </div>
+
+                    {/* Payment Status */}
+                    <div className="add-expense-form-group">
+                      <label className="add-expense-label">Payment Status</label>
+                      <select 
+                        className="add-expense-select"
+                        value={formData.payment_status}
+                        onChange={(e) => setFormData(prev => ({ ...prev, payment_status: e.target.value }))}
+                      >
+                        <option value="PAID">Paid</option>
+                        <option value="UNPAID">Unpaid</option>
+                      </select>
+                    </div>
+
+                    {/* Expense Type */}
+                    <div className="add-expense-form-group">
+                      <label className="add-expense-label">Expense Nature</label>
+                      <select 
+                        className="add-expense-select"
+                        value={formData.expense_type}
+                        onChange={(e) => setFormData(prev => ({ ...prev, expense_type: e.target.value }))}
+                      >
+                        <option value="OPERATING_EXPENSE">Operating Expense</option>
+                        <option value="CAPEX">Capital Expenditure</option>
+                        <option value="ASSET">Asset</option>
+                      </select>
+                    </div>
+
+                    {/* Business / Personal */}
+                    <div className="add-expense-form-group">
+                      <label className="add-expense-label">Business / Personal</label>
+                      <select 
+                        className="add-expense-select"
+                        value={formData.business_personal}
+                        onChange={(e) => setFormData(prev => ({ ...prev, business_personal: e.target.value }))}
+                      >
+                        <option value="BUSINESS">Business Expense</option>
+                        <option value="PERSONAL">Personal</option>
+                      </select>
+                    </div>
+
+                    {/* Approval Status */}
+                    <div className="add-expense-form-group">
+                      <label className="add-expense-label">Approval Status</label>
+                      <select 
+                        className="add-expense-select"
+                        value={formData.status}
+                        onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value }))}
+                      >
+                        <option value="APPROVED">Approved</option>
+                        <option value="NEEDS_REVIEW">Needs Review</option>
+                        <option value="DRAFT">Draft</option>
+                      </select>
+                    </div>
+
+                    {/* Notes (Spanning 2 columns) */}
+                    <div className="add-expense-form-group add-expense-col-span-2">
+                      <label className="add-expense-label">Notes / Remarks</label>
+                      <input 
+                        type="text"
+                        className="add-expense-input"
+                        placeholder="e.g. Snacks for team meeting, client local travel, etc."
+                        value={formData.notes}
+                        onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="add-expense-modal-footer">
+                  <button 
+                    type="button" 
+                    className="btn-modal-cancel" 
+                    onClick={() => setShowAddModal(false)}
+                    disabled={isSubmitting}
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    type="submit" 
+                    className="btn-modal-submit" 
+                    disabled={isSubmitting}
+                  >
+                    <Plus size={16} />
+                    {isSubmitting ? 'Adding Expense...' : 'Add Expense'}
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         )}
