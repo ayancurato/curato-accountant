@@ -7,6 +7,7 @@ from app.core.database import get_db
 from app.models import User, Transaction, Document
 from app.api.deps import get_current_user
 from app.schemas.transaction import TransactionOut, TransactionCreate, TransactionUpdate
+from app.services.transaction_service import log_audit, revalidate_transaction, clear_resolved_duplicate_anomaly
 
 router = APIRouter()
 
@@ -65,6 +66,12 @@ def get_income(id: UUID, current_user: User = Depends(get_current_user), db: Ses
     
     if not income:
         raise HTTPException(status_code=404, detail="Income not found")
+        
+    if income.status != "APPROVED":
+        if clear_resolved_duplicate_anomaly(db, income):
+            db.commit()
+            db.refresh(income)
+
     return income
 
 @router.post("", response_model=TransactionOut)
@@ -78,8 +85,6 @@ def create_income(income_in: TransactionCreate, current_user: User = Depends(get
     db.commit()
     db.refresh(db_income)
     return db_income
-
-from app.services.transaction_service import log_audit, revalidate_transaction
 
 @router.patch("/{id}", response_model=TransactionOut)
 def update_income(id: UUID, income_in: TransactionUpdate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
@@ -134,6 +139,12 @@ def approve_income(id: UUID, current_user: User = Depends(get_current_user), db:
     if not income:
         raise HTTPException(status_code=404, detail="Income not found")
         
+    # Clear any resolved duplicate anomaly if the duplicate was deleted
+    if income.status != "APPROVED":
+        if clear_resolved_duplicate_anomaly(db, income):
+            db.commit()
+            db.refresh(income)
+
     if income.anomalies and len(income.anomalies) > 0:
         raise HTTPException(status_code=400, detail="Cannot approve transaction with unresolved anomalies")
         
@@ -185,6 +196,14 @@ def delete_income(id: UUID, current_user: User = Depends(get_current_user), db: 
             if doc:
                 db.delete(doc)
                 
+    # Revalidate remaining unapproved transactions that were flagged with DUPLICATE_TRANSACTION
+    peer_txs = db.query(Transaction).filter(
+        Transaction.company_id == current_user.company_id,
+        Transaction.status != "APPROVED"
+    ).all()
+    for peer in peer_txs:
+        clear_resolved_duplicate_anomaly(db, peer)
+
     db.commit()
     return {"message": "Income deleted successfully"}
 

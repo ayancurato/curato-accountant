@@ -166,8 +166,8 @@ const ReviewPage: React.FC = () => {
       }
 
       await approveTransaction(token, id, tx.type);
-      setTx((prev: any) => ({ ...prev, status: 'APPROVED' }));
-      setOriginalTx((prev: any) => ({ ...prev, status: 'APPROVED' }));
+      setTx((prev: any) => ({ ...prev, status: 'APPROVED', anomalies: [] }));
+      setOriginalTx((prev: any) => ({ ...prev, status: 'APPROVED', anomalies: [] }));
     } catch (err: any) {
       setError(err.message || 'Failed to approve transaction');
     } finally {

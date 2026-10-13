@@ -196,3 +196,66 @@ def test_delete_expense_and_income(client, auth_headers):
     # Verify 404
     assert client.get(f"/api/v1/income/{inc_id}", headers=auth_headers).status_code == 404
 
+def test_duplicate_deleted_allows_approval(client, auth_headers, db_session):
+    from app.models import Company, Category, Transaction
+    from datetime import date
+    from decimal import Decimal
+
+    company = db_session.query(Company).first()
+    category = db_session.query(Category).filter(Category.type == "EXPENSE").first()
+
+    # 1. Create first transaction
+    tx1 = Transaction(
+        company_id=company.id,
+        type="EXPENSE",
+        vendor_customer="Zolvit",
+        invoice_number="VS/26-27/960361",
+        date=date(2026, 6, 23),
+        category_id=category.id,
+        net_amount=Decimal("2000.00"),
+        gst_amount=Decimal("360.00"),
+        total_amount=Decimal("2360.00"),
+        vendor_gstin="33AAACU7265E1ZM",
+        status="NEEDS_REVIEW",
+        anomalies=[]
+    )
+    db_session.add(tx1)
+    db_session.commit()
+
+    # 2. Create duplicate transaction with DUPLICATE_TRANSACTION anomaly
+    tx2 = Transaction(
+        company_id=company.id,
+        type="EXPENSE",
+        vendor_customer="Zolvit",
+        invoice_number="VS/26-27/960361",
+        date=date(2026, 6, 23),
+        category_id=category.id,
+        net_amount=Decimal("2000.00"),
+        gst_amount=Decimal("360.00"),
+        total_amount=Decimal("2360.00"),
+        vendor_gstin="33AAACU7265E1ZM",
+        status="NEEDS_REVIEW",
+        anomalies=[{"type": "DUPLICATE_TRANSACTION", "message": "Potential duplicate detected"}]
+    )
+    db_session.add(tx2)
+    db_session.commit()
+
+    # 3. Initially, tx2 cannot be approved because of the duplicate anomaly
+    approve_fail = client.post(f"/api/v1/expenses/{tx2.id}/approve", headers=auth_headers)
+    assert approve_fail.status_code == 400
+    assert "Cannot approve transaction with unresolved anomalies" in approve_fail.json()["detail"]
+
+    # 4. User deletes the other transaction (tx1)
+    del_resp = client.delete(f"/api/v1/expenses/{tx1.id}", headers=auth_headers)
+    assert del_resp.status_code == 200
+
+    # 5. Now tx2's anomalies should be cleared when retrieved or checked
+    get_resp = client.get(f"/api/v1/expenses/{tx2.id}", headers=auth_headers)
+    assert get_resp.status_code == 200
+    assert len(get_resp.json()["anomalies"]) == 0
+
+    # 6. Now approval of tx2 MUST succeed!
+    approve_success = client.post(f"/api/v1/expenses/{tx2.id}/approve", headers=auth_headers)
+    assert approve_success.status_code == 200
+    assert approve_success.json()["status"] == "APPROVED"
+

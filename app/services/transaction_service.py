@@ -26,23 +26,36 @@ def check_duplicate(db: Session, company_id, vendor_customer, invoice_number, to
             Document.file_hash == document_hash,
             Document.status.in_(["PROCESSED", "NEEDS_REVIEW", "READY", "APPROVED"])
         )
-        # If exclude_tx_id is set, it means we are revalidating. 
-        # But wait, document hash check is on document, not tx. 
-        doc_exists = q.first()
-        if doc_exists and (not exclude_tx_id or doc_exists.id != db.query(Transaction).filter(Transaction.id == exclude_tx_id).first().document_id):
-            return True
+        if exclude_tx_id:
+            current_tx = db.query(Transaction).filter(Transaction.id == exclude_tx_id).first()
+            current_doc_id = current_tx.document_id if current_tx else None
+            if current_doc_id:
+                q = q.filter(Document.id != current_doc_id)
+            # A duplicate document hash only counts if it is attached to another active, non-rejected transaction!
+            q = q.join(Transaction, Transaction.document_id == Document.id).filter(
+                Transaction.id != exclude_tx_id,
+                Transaction.status != "REJECTED"
+            )
+            if q.first():
+                return True
+        else:
+            q_tx = q.join(Transaction, Transaction.document_id == Document.id).filter(Transaction.status != "REJECTED")
+            if q_tx.first():
+                return True
+            if q.first():
+                return True
 
     if not vendor_customer or not invoice_number:
         return False
     
-    # Simple duplicate detection based on vendor and invoice_number
-    # FIXED: Added Date and Total Amount matching to explicitly follow CEO PRD rules.
+    # Simple duplicate detection based on vendor, invoice_number, date, and total_amount
     q1 = db.query(Transaction).filter(
         Transaction.company_id == company_id,
         Transaction.vendor_customer == vendor_customer,
         Transaction.invoice_number == invoice_number,
         Transaction.date == invoice_date,
-        Transaction.total_amount == total_amount
+        Transaction.total_amount == total_amount,
+        Transaction.status != "REJECTED"
     )
     if exclude_tx_id:
         q1 = q1.filter(Transaction.id != exclude_tx_id)
@@ -205,7 +218,7 @@ def process_ai_result(db: Session, document: Document, ai_data: AIProcessedTrans
 
     return tx, anomalies, is_duplicate, amounts_valid_status
 
-def revalidate_transaction(db: Session, tx: Transaction, document: Document):
+def revalidate_transaction(db: Session, tx: Transaction, document: Document = None):
     anomalies = []
     
     if not tx.category_id:
@@ -227,6 +240,14 @@ def revalidate_transaction(db: Session, tx: Transaction, document: Document):
     if not tx.invoice_number:
         anomalies.append({'type': 'MISSING_INVOICE_NUMBER', 'message': 'Invoice number missing.'})
         
+    doc_hash = None
+    if document and hasattr(document, 'file_hash'):
+        doc_hash = document.file_hash
+    elif tx.document_id:
+        doc = db.query(Document).filter(Document.id == tx.document_id).first()
+        if doc:
+            doc_hash = doc.file_hash
+
     is_duplicate = check_duplicate(
         db, 
         tx.company_id, 
@@ -234,7 +255,7 @@ def revalidate_transaction(db: Session, tx: Transaction, document: Document):
         tx.invoice_number, 
         tx.total_amount, 
         tx.date,
-        document.file_hash if document else None,
+        doc_hash,
         exclude_tx_id=tx.id
     )
     if is_duplicate:
@@ -247,3 +268,49 @@ def revalidate_transaction(db: Session, tx: Transaction, document: Document):
             anomalies.append({'type': 'MISSING_GSTIN', 'message': 'GST is present but Vendor GSTIN is missing.'})
         
     return anomalies
+
+def clear_resolved_duplicate_anomaly(db: Session, tx: Transaction) -> bool:
+    """
+    If tx.anomalies contains DUPLICATE_TRANSACTION, re-check if it is still a duplicate.
+    If no duplicate exists anymore (e.g. peer duplicate was deleted), remove the anomaly.
+    Returns True if anomalies were changed.
+    """
+    if not tx.anomalies:
+        return False
+        
+    has_dup_anomaly = any(
+        (a.get("type") if isinstance(a, dict) else a) == "DUPLICATE_TRANSACTION"
+        for a in tx.anomalies
+    )
+    if not has_dup_anomaly:
+        return False
+        
+    doc_hash = None
+    if tx.document and hasattr(tx.document, 'file_hash'):
+        doc_hash = tx.document.file_hash
+    elif tx.document_id:
+        doc = db.query(Document).filter(Document.id == tx.document_id).first()
+        if doc:
+            doc_hash = doc.file_hash
+            
+    is_dup = check_duplicate(
+        db,
+        tx.company_id,
+        tx.vendor_customer,
+        tx.invoice_number,
+        tx.total_amount,
+        tx.date,
+        doc_hash,
+        exclude_tx_id=tx.id
+    )
+    
+    if not is_dup:
+        tx.anomalies = [
+            a for a in tx.anomalies
+            if (a.get("type") if isinstance(a, dict) else a) != "DUPLICATE_TRANSACTION"
+        ]
+        if tx.document and len(tx.anomalies) == 0:
+            tx.document.status = "READY"
+        return True
+        
+    return False
