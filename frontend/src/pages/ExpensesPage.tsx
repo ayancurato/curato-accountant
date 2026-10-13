@@ -73,6 +73,9 @@ const ExpensesPage: React.FC = () => {
     return cat ? cat.name : 'Uncategorized';
   };
 
+  const [dateSortAsc, setDateSortAsc] = useState<boolean>(false);
+  const toggleSort = () => setDateSortAsc(prev => !prev);
+
   const filteredExpenses = expenses.filter(tx => {
     if (status && tx.status !== status) return false;
     if (paymentStatus && tx.payment_status !== paymentStatus) return false;
@@ -89,6 +92,12 @@ const ExpensesPage: React.FC = () => {
       }
     }
     return true;
+  });
+
+  const displayedExpenses = [...filteredExpenses].sort((a, b) => {
+    const da = a.date || '';
+    const db = b.date || '';
+    return dateSortAsc ? da.localeCompare(db) : db.localeCompare(da);
   });
 
   return (
@@ -234,48 +243,60 @@ const ExpensesPage: React.FC = () => {
               <table className="expenses-table">
                 <thead>
                   <tr>
-                    <th>
-                      <div className="table-header-sort">
+                    <th style={{ width: '90px' }}>
+                      <div className="table-header-sort" onClick={toggleSort}>
                         DATE <ChevronsUpDown size={12} />
                       </div>
                     </th>
-                    <th>VENDOR</th>
-                    <th>INVOICE #</th>
-                    <th>CATEGORY</th>
-                    <th>USD</th>
-                    <th>NET</th>
-                    <th>GST</th>
-                    <th>TOTAL</th>
-                    <th>ACCOUNT</th>
-                    <th>PAY STATUS</th>
-                    <th>TYPE</th>
-                    <th>BIZ/PERS</th>
-                    <th>STATUS</th>
-                    <th>ACTIONS</th>
+                    <th style={{ minWidth: '130px', maxWidth: '200px' }}>VENDOR</th>
+                    <th style={{ minWidth: '95px', maxWidth: '130px' }}>INVOICE #</th>
+                    <th style={{ minWidth: '110px', maxWidth: '150px' }}>CATEGORY</th>
+                    <th style={{ width: '75px', textAlign: 'right' }}>USD</th>
+                    <th style={{ width: '85px', textAlign: 'right' }}>NET</th>
+                    <th style={{ width: '75px', textAlign: 'right' }}>GST</th>
+                    <th style={{ width: '90px', textAlign: 'right' }}>TOTAL</th>
+                    <th style={{ minWidth: '85px', maxWidth: '110px' }}>ACCOUNT</th>
+                    <th style={{ width: '80px', textAlign: 'center' }}>PAY STATUS</th>
+                    <th style={{ width: '75px', textAlign: 'center' }}>TYPE</th>
+                    <th style={{ width: '70px', textAlign: 'center' }}>BIZ/PERS</th>
+                    <th style={{ width: '85px', textAlign: 'center' }}>STATUS</th>
+                    <th style={{ width: '65px', textAlign: 'center' }}>ACTIONS</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredExpenses.map((tx) => (
+                  {displayedExpenses.map((tx) => (
                     <tr key={tx.id} onClick={() => navigate(`/review/${tx.id}`)} style={{ cursor: 'pointer' }}>
-                      <td>{tx.date || '-'}</td>
+                      <td style={{ whiteSpace: 'nowrap', fontSize: '0.8rem' }}>{tx.date || '-'}</td>
                       <td>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          {tx.document_id && <Paperclip size={14} style={{ color: '#9CA3AF' }} />}
-                          {tx.vendor_customer || '-'}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', maxWidth: '200px' }} title={tx.vendor_customer}>
+                          {tx.document_id && <Paperclip size={13} style={{ color: '#9CA3AF', flexShrink: 0 }} />}
+                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 500 }}>
+                            {tx.vendor_customer || '-'}
+                          </span>
                         </div>
                       </td>
-                      <td>{tx.invoice_number || '-'}</td>
-                      <td>{getCategoryName(tx.category_id)}</td>
-                      <td className="col-usd">{tx.usd_amount ? parseFloat(tx.usd_amount).toLocaleString('en-US', { style: 'currency', currency: 'USD' }) : '-'}</td>
+                      <td title={tx.invoice_number}>
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block', maxWidth: '130px', fontSize: '0.8rem' }}>
+                          {tx.invoice_number || '-'}
+                        </span>
+                      </td>
+                      <td title={getCategoryName(tx.category_id)}>
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block', maxWidth: '150px', fontSize: '0.78rem' }}>
+                          {getCategoryName(tx.category_id)}
+                        </span>
+                      </td>
+                      <td className="col-usd" style={{ whiteSpace: 'nowrap', textAlign: 'right', fontSize: '0.8rem' }}>
+                        {tx.usd_amount ? parseFloat(tx.usd_amount).toLocaleString('en-US', { style: 'currency', currency: 'USD' }) : '-'}
+                      </td>
                       
                       {/* NET AMOUNT */}
-                      <td className="col-net" onClick={(e) => {
+                      <td className="col-net" style={{ whiteSpace: 'nowrap', textAlign: 'right', fontSize: '0.8rem' }} onClick={(e) => {
                         e.stopPropagation();
                         setEditingCell({ id: tx.id, field: 'net_amount' });
                         setEditValue((tx.net_amount || '0').toString());
                       }}>
                         {editingCell?.id === tx.id && editingCell?.field === 'net_amount' ? (
-                          <div style={{ display: 'flex', gap: '4px' }}>
+                          <div style={{ display: 'flex', gap: '4px', justifyContent: 'flex-end' }}>
                             <input 
                               autoFocus
                               type="number" 
@@ -298,7 +319,7 @@ const ExpensesPage: React.FC = () => {
                                 }
                               }}
                               onBlur={() => setEditingCell(null)}
-                              style={{ width: '80px', padding: '2px 4px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                              style={{ width: '75px', padding: '2px 4px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
                             />
                           </div>
                         ) : (
@@ -308,16 +329,18 @@ const ExpensesPage: React.FC = () => {
                         )}
                       </td>
 
-                      <td className="col-gst">{parseFloat(tx.gst_amount || '0').toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</td>
+                      <td className="col-gst" style={{ whiteSpace: 'nowrap', textAlign: 'right', fontSize: '0.8rem' }}>
+                        {parseFloat(tx.gst_amount || '0').toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}
+                      </td>
                       
                       {/* TOTAL AMOUNT */}
-                      <td className="col-total" onClick={(e) => {
+                      <td className="col-total" style={{ whiteSpace: 'nowrap', textAlign: 'right', fontSize: '0.8125rem' }} onClick={(e) => {
                         e.stopPropagation();
                         setEditingCell({ id: tx.id, field: 'total_amount' });
                         setEditValue((tx.total_amount || '0').toString());
                       }}>
                         {editingCell?.id === tx.id && editingCell?.field === 'total_amount' ? (
-                          <div style={{ display: 'flex', gap: '4px' }}>
+                          <div style={{ display: 'flex', gap: '4px', justifyContent: 'flex-end' }}>
                             <input 
                               autoFocus
                               type="number" 
@@ -340,7 +363,7 @@ const ExpensesPage: React.FC = () => {
                                 }
                               }}
                               onBlur={() => setEditingCell(null)}
-                              style={{ width: '80px', padding: '2px 4px', border: '1px solid #cbd5e1', borderRadius: '4px', fontWeight: 'bold' }}
+                              style={{ width: '75px', padding: '2px 4px', border: '1px solid #cbd5e1', borderRadius: '4px', fontWeight: 'bold' }}
                             />
                           </div>
                         ) : (
@@ -349,23 +372,33 @@ const ExpensesPage: React.FC = () => {
                           </span>
                         )}
                       </td>
-                      <td>{tx.payment_account || '-'}</td>
-                      <td>
+                      <td title={tx.payment_account}>
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block', maxWidth: '110px', fontSize: '0.78rem' }}>
+                          {tx.payment_account || '-'}
+                        </span>
+                      </td>
+                      <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
                         {tx.payment_status ? (
                           <span className={`status-pill ${tx.payment_status === 'PAID' ? 'success' : 'warning'}`}>
                             {tx.payment_status}
                           </span>
                         ) : '-'}
                       </td>
-                      <td>{(tx.expense_type || '-').replace('_', ' ')}</td>
-                      <td>{(tx.business_personal || '-').substring(0, 4)}</td>
-                      <td>
-                        <span className={`status-pill ${tx.status === 'APPROVED' ? 'success' : tx.status === 'NEEDS_REVIEW' ? 'warning' : 'neutral'}`}>
-                          {tx.status.replace('_', ' ')}
+                      <td style={{ textAlign: 'center', whiteSpace: 'nowrap', fontSize: '0.75rem' }}>
+                        {tx.expense_type === 'OPERATING_EXPENSE' ? 'Opex' : tx.expense_type === 'ASSET' ? 'Asset' : (tx.expense_type || '-')}
+                      </td>
+                      <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
+                        <span className="status-pill neutral" style={{ padding: '0.15rem 0.45rem', fontSize: '0.65rem' }}>
+                          {tx.business_personal ? tx.business_personal.substring(0, 4) : '-'}
                         </span>
                       </td>
-                      <td>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
+                        <span className={`status-pill ${tx.status === 'APPROVED' ? 'success' : tx.status === 'NEEDS_REVIEW' ? 'warning' : 'neutral'}`}>
+                          {tx.status === 'NEEDS_REVIEW' ? 'Review' : tx.status === 'APPROVED' ? 'Approved' : tx.status.replace('_', ' ')}
+                        </span>
+                      </td>
+                      <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                           <button 
                             className="btn-action" 
                             title="Review details"
@@ -374,7 +407,7 @@ const ExpensesPage: React.FC = () => {
                               navigate(`/review/${tx.id}`);
                             }}
                           >
-                            <MoreHorizontal size={16} />
+                            <MoreHorizontal size={15} />
                           </button>
                           <button 
                             className="btn-action btn-action-delete" 
@@ -384,7 +417,7 @@ const ExpensesPage: React.FC = () => {
                               setDeleteModalTx(tx);
                             }}
                           >
-                            <Trash2 size={15} />
+                            <Trash2 size={14} />
                           </button>
                         </div>
                       </td>

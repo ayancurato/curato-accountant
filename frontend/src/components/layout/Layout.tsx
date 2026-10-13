@@ -1,21 +1,24 @@
 import React from 'react';
-import { Outlet, NavLink, Link, useNavigate } from 'react-router-dom';
+import { Outlet, NavLink, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import './Layout.css';
 
 const Layout: React.FC = () => {
   const { logout, user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleLogout = () => {
     logout();
     navigate('/login');
   };
 
+  const isWidePage = location.pathname.startsWith('/expenses') || location.pathname.startsWith('/income');
+
   return (
     <div className="curato-layout">
       <header className="curato-header">
-        <div className="container curato-header-inner">
+        <div className={`curato-header-inner ${isWidePage ? 'curato-header-wide' : 'container'}`}>
           <Link to="/reports" className="curato-logo-link">
             <img src="/curato-logo.jpg" alt="Curato Logo" className="curato-logo" />
           </Link>
@@ -48,7 +51,7 @@ const Layout: React.FC = () => {
         </div>
       </header>
 
-      <main className="curato-main container">
+      <main className={`curato-main ${isWidePage ? 'curato-main-wide' : 'container'}`}>
         <Outlet />
       </main>
     </div>

@@ -70,6 +70,20 @@
   padding: 2.5rem 2rem;
 }
 
+.curato-header-wide {
+  width: 100%;
+  padding: 0 1.5rem;
+  max-width: 100%;
+}
+
+.curato-main-wide {
+  flex: 1;
+  width: 100%;
+  max-width: 100% !important;
+  margin: 0 !important;
+  padding: 1.25rem 1.5rem;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .curato-header-inner {
