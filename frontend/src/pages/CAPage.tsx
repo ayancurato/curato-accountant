@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Card } from '../components/ui/Card';
 import { getCAReadiness, downloadCAPack, uploadDocuments, updateTransaction } from '../api/client';
 import { AlertCircle, CheckCircle, FileText, Download, Upload } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 const MetricCard = ({ title, amount, icon: Icon, color }: { title: string, amount: number, icon: any, color: string }) => (
   <Card noPadding>
@@ -56,6 +57,7 @@ const ExceptionList = ({ title, exceptions, onReview, onUpload }: { title: strin
 
 export const CAPage: React.FC = () => {
   const navigate = useNavigate();
+  const { token } = useAuth();
   const [preset, setPreset] = useState('financial_year');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
@@ -66,10 +68,10 @@ export const CAPage: React.FC = () => {
   const [error, setError] = useState('');
 
   const loadData = async () => {
+    if (!token) return;
     try {
       setLoading(true);
       setError('');
-      const token = localStorage.getItem('token') || '';
       const params: Record<string, string> = {};
       if (preset === 'custom') {
         if (dateFrom) params.start_date = dateFrom;
@@ -89,13 +91,13 @@ export const CAPage: React.FC = () => {
 
   useEffect(() => {
     loadData();
-  }, [preset, dateFrom, dateTo]);
+  }, [preset, dateFrom, dateTo, token]);
 
   const handleExport = async () => {
+    if (!token) return;
     try {
       setExporting(true);
       setError('');
-      const token = localStorage.getItem('token') || '';
       const params: Record<string, string> = {};
       if (preset === 'custom') {
         if (dateFrom) params.start_date = dateFrom;
@@ -112,10 +114,9 @@ export const CAPage: React.FC = () => {
   };
 
   const handleUploadMissingDoc = async (id: string, type: string, e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files || e.target.files.length === 0) return;
+    if (!token || !e.target.files || e.target.files.length === 0) return;
     try {
       setLoading(true);
-      const token = localStorage.getItem('token') || '';
       const files = Array.from(e.target.files);
       const docs = await uploadDocuments(token, files);
       if (docs && docs.length > 0) {

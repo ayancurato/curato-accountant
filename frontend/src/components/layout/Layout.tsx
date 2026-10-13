@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import './Layout.css';
 
 const Layout: React.FC = () => {
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -36,6 +36,11 @@ const Layout: React.FC = () => {
             <NavLink to="/ca" className={({ isActive }) => `curato-nav-link ${isActive ? 'active' : ''}`}>
               CA
             </NavLink>
+            {user && (
+              <span style={{ fontSize: '0.8125rem', color: '#64748b', display: 'flex', alignItems: 'center', padding: '0.25rem 0.5rem' }}>
+                {user.email}
+              </span>
+            )}
             <button onClick={handleLogout} className="curato-nav-link" style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
               Logout
             </button>

@@ -39,7 +39,7 @@ const UploadPage: React.FC = () => {
   const [files, setFiles] = useState<FileState[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { token } = useAuth();
+  const { token, logout } = useAuth();
   const navigate = useNavigate();
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -53,7 +53,10 @@ const UploadPage: React.FC = () => {
   }, []);
 
   const processFile = async (fileState: FileState) => {
-    if (!token) return;
+    if (!token) {
+      navigate('/login', { state: { error: 'Please sign in to upload documents.' } });
+      return;
+    }
     
     // Update status to UPLOADING
     setFiles(prev => prev.map(f => f.id === fileState.id ? { ...f, status: 'UPLOADING', error: undefined } : f));
@@ -83,11 +86,20 @@ const UploadPage: React.FC = () => {
       } : f));
 
     } catch (err: any) {
+      const isAuthErr = err.message?.toLowerCase().includes('credentials') || 
+                        err.message?.toLowerCase().includes('session') || 
+                        err.message?.toLowerCase().includes('unauthorized');
+
       setFiles(prev => prev.map(f => f.id === fileState.id ? { 
         ...f, 
         status: 'ERROR', 
-        error: err.message || 'An unknown error occurred' 
+        error: isAuthErr ? 'Your session has expired. Please sign in again.' : (err.message || 'An unknown error occurred') 
       } : f));
+
+      if (isAuthErr) {
+        logout();
+        navigate('/login', { state: { error: 'Your session has expired. Please sign in again.' } });
+      }
     }
   };
 
@@ -272,8 +284,15 @@ const UploadPage: React.FC = () => {
 
                 {fs.status === 'ERROR' && fs.error && (
                   <div className="upload-item-error">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <XCircle size={16} /> <strong>Error:</strong> {fs.error}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', width: '100%', flexWrap: 'wrap' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <XCircle size={16} /> <strong>Error:</strong> {fs.error}
+                      </div>
+                      {(fs.error.toLowerCase().includes('session') || fs.error.toLowerCase().includes('credentials') || fs.error.toLowerCase().includes('sign in')) && (
+                        <Button size="sm" onClick={() => { logout(); navigate('/login', { state: { error: 'Your session has expired. Please sign in again.' } }); }}>
+                          Sign In Again
+                        </Button>
+                      )}
                     </div>
                   </div>
                 )}

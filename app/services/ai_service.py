@@ -16,20 +16,64 @@ if settings.GROQ_API_KEY != "mock-api-key" and settings.GROQ_API_KEY is not None
 else:
     client = None
 
-def convert_pdf_to_base64_images(file_path: str) -> List[str]:
-    """Converts a PDF file to a list of base64 encoded JPEG images."""
+def convert_pdf_to_base64_images(file_path: str, max_images: int = 2) -> List[str]:
+    """
+    Converts key pages of a PDF file to a list of base64 encoded JPEG images.
+    Groq Vision models support at most 3 images and have strict ITPM limits,
+    so we strategically select up to max_images (default 2) pages with the highest financial relevance.
+    """
     doc = fitz.open(file_path)
-    base64_images = []
+    total_pages = len(doc)
     
-    for page_num in range(min(5, len(doc))):
+    if total_pages <= max_images:
+        selected_pages = list(range(total_pages))
+    else:
+        # Page 0 (Page 1) almost always contains invoice title, vendor, buyer, invoice #, and dates
+        selected_pages = [0]
+        # From remaining pages, pick the page with the highest density of financial keywords (e.g. tax table or grand total)
+        keywords = ["tax", "cgst", "sgst", "igst", "gst", "total", "amount", "summary", "hsn", "due", "balance", "payable"]
+        best_page = 1
+        best_score = -1
+        
+        for p in range(1, total_pages):
+            txt = doc[p].get_text().lower()
+            score = sum(txt.count(kw) for kw in keywords)
+            if score > best_score:
+                best_score = score
+                best_page = p
+                
+        selected_pages.append(best_page)
+        selected_pages = sorted(list(set(selected_pages)))
+    
+    base64_images = []
+    for page_num in selected_pages:
         page = doc.load_page(page_num)
-        pix = page.get_pixmap(matrix=fitz.Matrix(2.0, 2.0))
+        pix = page.get_pixmap(matrix=fitz.Matrix(1.5, 1.5))
         img_bytes = pix.tobytes("jpeg")
         base64_str = base64.b64encode(img_bytes).decode("utf-8")
         base64_images.append(f"data:image/jpeg;base64,{base64_str}")
         
     doc.close()
     return base64_images
+
+def extract_pdf_text_summary(file_path: str) -> str:
+    """Extracts text across all pages in the PDF to supplement vision images."""
+    try:
+        doc = fitz.open(file_path)
+        snippets = []
+        for i, page in enumerate(doc):
+            t = page.get_text().strip()
+            if t:
+                snippets.append(f"--- Page {i + 1} ---\n{t}")
+        doc.close()
+        if not snippets:
+            return ""
+        full_text = "\n\n".join(snippets)
+        if len(full_text) > 6000:
+            full_text = full_text[:6000] + "\n...[truncated]..."
+        return full_text
+    except Exception:
+        return ""
 
 def extract_invoice_data(file_path: str, mime_type: str) -> AIProcessedTransaction:
     """Extracts structured invoice data using Groq Vision."""
@@ -77,6 +121,11 @@ def extract_invoice_data(file_path: str, mime_type: str) -> AIProcessedTransacti
     
     prompt = prompt.format(schema=json.dumps(AIProcessedTransaction.model_json_schema(), indent=2))
     
+    if mime_type == "application/pdf":
+        text_summary = extract_pdf_text_summary(file_path)
+        if text_summary:
+            prompt += f"\n\n--- DOCUMENT TEXT ACROSS ALL PAGES ---\n{text_summary}"
+    
     messages = [
         {
             "role": "system",
@@ -109,7 +158,8 @@ def extract_invoice_data(file_path: str, mime_type: str) -> AIProcessedTransacti
             model=settings.GROQ_MODEL,
             messages=messages,
             response_format={"type": "json_object"},
-            temperature=0.0
+            temperature=0.0,
+            max_tokens=800
         )
         
         content = response.choices[0].message.content

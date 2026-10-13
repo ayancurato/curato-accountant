@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, ArrowRight, KeyRound } from 'lucide-react';
 import './LoginPage.css';
 
 const LoginPage: React.FC = () => {
@@ -10,8 +10,18 @@ const LoginPage: React.FC = () => {
   const [password, setPassword] = useState('');
   const [localError, setLocalError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { login } = useAuth();
+  const { token, login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const redirectPath = (location.state as any)?.from?.pathname || '/reports';
+  const sessionNotice = (location.state as any)?.error;
+
+  useEffect(() => {
+    if (token) {
+      navigate(redirectPath, { replace: true });
+    }
+  }, [token, navigate, redirectPath]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -19,12 +29,18 @@ const LoginPage: React.FC = () => {
     setIsSubmitting(true);
     try {
       await login(email, password);
-      navigate('/reports', { replace: true });
+      navigate(redirectPath, { replace: true });
     } catch (err: any) {
       setLocalError(err.message || 'Login failed. Please check your credentials.');
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleQuickFill = () => {
+    setEmail('sarath@curato.ai');
+    setPassword('password@123');
+    setLocalError(null);
   };
 
   return (
@@ -35,6 +51,9 @@ const LoginPage: React.FC = () => {
         </div>
         
         <form onSubmit={handleSubmit} className="login-form">
+          {sessionNotice && !localError && (
+            <div className="login-notice">{sessionNotice}</div>
+          )}
           {localError && <div className="login-error">{localError}</div>}
           
           <div className="form-group">
@@ -84,6 +103,18 @@ const LoginPage: React.FC = () => {
             {!isSubmitting && <ArrowRight size={18} />}
           </button>
         </form>
+
+        <div className="login-demo-helper">
+          <div className="demo-helper-title">
+            <KeyRound size={14} /> Quick Demo Access
+          </div>
+          <div className="demo-helper-info">
+            <span>Default: <strong>sarath@curato.ai</strong> / <strong>password@123</strong></span>
+            <button type="button" className="demo-quick-fill" onClick={handleQuickFill}>
+              Fill Credentials
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
